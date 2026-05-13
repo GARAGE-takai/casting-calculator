@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="鋳造計算">
+<meta name="theme-color" content="#ffffff">
+<title>鋳造重量計算</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f3;
+    --text: #1a1a1a;
+    --text-secondary: #6b6b68;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --accent: #1a1a1a;
+    --accent-text: #ffffff;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg-secondary: #2c2c2e;
+      --text: #f2f2f7;
+      --text-secondary: #8e8e93;
+      --border: rgba(255,255,255,0.12);
+      --border-strong: rgba(255,255,255,0.25);
+      --accent: #f2f2f7;
+      --accent-text: #1c1c1e;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 24px);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0 20px;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  header span {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-left: auto;
+  }
+
+  .mode-toggle {
+    display: flex;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    margin-bottom: 16px;
+  }
+
+  .mode-toggle button {
+    flex: 1;
+    padding: 7px 0;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: calc(var(--radius-md) - 2px);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .mode-toggle button.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+
+  .card label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  input[type="number"] {
+    flex: 1;
+    font-size: 20px;
+    font-weight: 400;
+    padding: 6px 0;
+    border: none;
+    border-bottom: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="number"]:focus {
+    border-bottom-color: var(--text);
+  }
+
+  input[type="number"]::placeholder {
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 300;
+  }
+
+  .unit {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .shrink-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .shrink-val {
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .shrink-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .result-card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+
+  .result-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .result-value {
+    font-size: 26px;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .result-value.placeholder {
+    color: var(--border-strong);
+  }
+
+  .result-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  .formula-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .formula-card.visible {
+    display: block;
+  }
+
+  .formula-card p {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    white-space: pre-wrap;
+  }
+
+  .info {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    padding: 0 2px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>鋳造重量計算</h1>
+  <span>Cast Purple → SV925</span>
+</header>
+
+<div class="mode-toggle">
+  <button id="btn-vol" class="active" onclick="setMode('vol')">体積入力 mm³</button>
+  <button id="btn-wt" onclick="setMode('wt')">重量入力 g</button>
+</div>
+
+<div class="card" id="vol-card">
+  <label>Rhinoで計測した体積</label>
+  <div class="input-row">
+    <input type="number" id="volume" placeholder="500" min="0" step="0.1" inputmode="decimal" oninput="calc()">
+    <span class="unit">mm³</span>
+  </div>
+</div>
+
+<div class="card" id="wt-card" style="display:none;">
+  <label>印刷物の重量（秤で計測）</label>
+  <div class="input-row">
+    <input type="number" id="weight-in" placeholder="1.57" min="0" step="0.01" inputmode="decimal" oninput="calc()">
+    <span class="unit">g</span>
+  </div>
+</div>
+
+<div class="card">
+  <label>収縮補正（任意）</label>
+  <div class="shrink-row">
+    <input type="range" id="shrink" min="0" max="8" step="0.5" value="0" oninput="updateShrink()">
+    <span class="shrink-val" id="shrink-out">0%</span>
+  </div>
+  <p class="shrink-hint">Cast Purple 線形収縮：各軸 1.5〜2%（体積収縮 6%）<br>Rhinoで拡大出力する場合に設定</p>
+</div>
+
+<div class="results">
+  <div class="result-card">
+    <div class="result-label">レジン重量</div>
+    <div class="result-value placeholder" id="resin-wt">—</div>
+    <div class="result-sub">Cast Purple</div>
+  </div>
+  <div class="result-card">
+    <div class="result-label">SV925 鋳造重量</div>
+    <div class="result-value placeholder" id="silver-wt">—</div>
+    <div class="result-sub">スプルー分は含まず</div>
+  </div>
+</div>
+
+<div class="formula-card" id="formula-card">
+  <p id="formula-text"></p>
+</div>
+
+<p class="info">Cast Purple密度 1.1 g/ml・SV925比重 10.49（Siraya Tech公式値）<br>体積モード：mm³ → ml に自動換算（÷ 1000）</p>
+
+<script>
+let mode = 'vol';
+
+function setMode(m) {
+  mode = m;
+  const isVol = m === 'vol';
+  document.getElementById('vol-card').style.display = isVol ? 'block' : 'none';
+  document.getElementById('wt-card').style.display = isVol ? 'none' : 'block';
+  document.getElementById('btn-vol').className = isVol ? 'active' : '';
+  document.getElementById('btn-wt').className = isVol ? '' : 'active';
+  reset();
+}
+
+function updateShrink() {
+  const v = parseFloat(document.getElementById('shrink').value);
+  document.getElementById('shrink-out').textContent = v.toFixed(1) + '%';
+  calc();
+}
+
+function calc() {
+  const shrinkPct = parseFloat(document.getElementById('shrink').value) || 0;
+  const shrinkFactor = 1 + shrinkPct / 100;
+  let resinMl = null;
+  let lines = [];
+
+  if (mode === 'vol') {
+    const vol = parseFloat(document.getElementById('volume').value);
+    if (isNaN(vol) || vol <= 0) { reset(); return; }
+    const volMl = vol / 1000;
+    const adjMl = volMl * shrinkFactor;
+    resinMl = adjMl;
+    lines.push(vol.toFixed(1) + ' mm³ ÷ 1000 = ' + volMl.toFixed(4) + ' ml');
+    if (shrinkPct > 0) lines.push(volMl.toFixed(4) + ' ml × ' + shrinkFactor.toFixed(4) + ' = ' + adjMl.toFixed(4) + ' ml');
+    lines.push('レジン: ' + adjMl.toFixed(4) + ' × 1.1 = ' + (adjMl * 1.1).toFixed(2) + ' g');
+    lines.push('SV925: ' + adjMl.toFixed(4) + ' × 10.49 = ' + (adjMl * 10.49).toFixed(2) + ' g');
+  } else {
+    const wt = parseFloat(document.getElementById('weight-in').value);
+    if (isNaN(wt) || wt <= 0) { reset(); return; }
+    const ml = wt / 1.1;
+    resinMl = ml * shrinkFactor;
+    lines.push(wt.toFixed(2) + ' g ÷ 1.1 = ' + ml.toFixed(4) + ' ml');
+    if (shrinkPct > 0) lines.push(ml.toFixed(4) + ' × ' + shrinkFactor.toFixed(4) + ' = ' + resinMl.toFixed(4) + ' ml');
+    lines.push('SV925: ' + resinMl.toFixed(4) + ' × 10.49 = ' + (resinMl * 10.49).toFixed(2) + ' g');
+  }
+
+  const resinWt = resinMl * 1.1;
+  const silverWt = resinMl * 10.49;
+
+  const rEl = document.getElementById('resin-wt');
+  const sEl = document.getElementById('silver-wt');
+  rEl.textContent = resinWt.toFixed(2) + ' g';
+  rEl.className = 'result-value';
+  sEl.textContent = silverWt.toFixed(2) + ' g';
+  sEl.className = 'result-value';
+
+  document.getElementById('formula-text').textContent = lines.join('\n');
+  document.getElementById('formula-card').className = 'formula-card visible';
+}
+
+function reset() {
+  ['resin-wt','silver-wt'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+    document.getElementById(id).className = 'result-value placeholder';
+  });
+  document.getElementById('formula-card').className = 'formula-card';
+}
+</script>
+</body>
+</html>
